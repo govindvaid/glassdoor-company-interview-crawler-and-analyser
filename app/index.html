@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<style>
+body{
+  text-align: center;
+}
+h1,h2,h3,li{
+  margin-top:20px;
+}
+ul{
+  margin-bottom:80px;
+  font-weight: normal;
+}
+ul li{
+  text-align: left;
+}
+</style>
+</head>
+<body>
+
+<div ng-app="myApp" ng-controller="namesCtrl">
+<h1>Interview Analysis</h1>
+<h2><b>Company</b> : Microsoft , <b>Job</b>: Software Development Engineer </h2>
+
+<div id="experienceData" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+<div>
+<h3>Issue type:
+  <ul>
+    <li>Managerial Issue: It includes issues faced due to hr or management problems like : interview schedule even though no vacancy left, irrelevant position interviews eg: asking design question to developers, communication problems, interview mixups, interview deplay, dull and non responsives interviewers, problems and delay due to complex interview process etc.</li>
+    <li>Behavioral Issues: rude, unprofessional, unpleasant, apathetic,unpleasant, unkind and uninterested behaviour of interviewers etc.</li>
+  </ul>
+<h3>
+</div>
+<h3>Percentage of Offers Rejected or declined by Selected Candidates due to Managerial or Behavioral</h3>
+<div id="declinedDueToIssue" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+<h3 style="line-height:40px;"><b><span style="font-size:32px;">Cost to company</span><br>(Includes the man hour spend by interviers to find proper candidate who didnot join)<br> per candicate <br>Due to Managerial or Behavioral Issues : <br><span style="font-size:32px;">~ {{4*400*(offerDeclineDueToKnowIssue['management']+offerDeclineDueToKnowIssue['behavioral'])}} Rupees.</span></b><br/><span style="font-weight:normal;font-size:14px;">Assuming: 4 interviews process of on average 1 hour. Average CTC of Software Development Engineer interviewer is 13Lakh per annum, working 9 hours a day for 31 day month.</span></h3>
+<h3>In case of Positive Experience</h3>
+<div id="issueinPositive" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+
+<h3>In case of Negative Experience</h3>
+<div id="issueinNegative" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+
+<h3>In case of Neutral Experience</h3>
+<div id="issueinNeutral" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+</div>
+
+<script>
+angular.module('myApp', []).controller('namesCtrl', function($scope,$http) {
+  $http.get("http://localhost:5000/get_data")
+  .then(function(response) {
+      $scope.mydata = response.data.data;
+      $scope.experience = response.data.experience;
+      $scope.issues = response.data.issues;
+      $scope.surveycount = response.data.data.length;
+      $scope.offerDeclineDueToKnowIssue = response.data.offerDeclineDueToKnowIssue;
+      var chart = {
+          plotBackgroundColor: null,
+          plotBorderWidth: null,
+          plotShadow: false,
+          type: 'pie'
+      };
+      var plotOptions = {
+          pie: {
+              allowPointSelect: true,
+              cursor: 'pointer',
+              dataLabels: {
+                  enabled: true,
+                  format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                  style: {
+                      color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                  }
+              }
+          }
+      };
+
+      Highcharts.chart('experienceData', {
+          chart: chart,
+          title: {
+              text: 'Interview experience'
+          },
+          tooltip: {
+              pointFormat: '<b>{point.percentage:.2f}%</b>'
+          },
+          plotOptions: plotOptions,
+          series: [{
+
+              colorByPoint: true,
+              data: [{
+                  name: 'Others Issues',
+                  y: ($scope.experience['Neutral Experience']/$scope.surveycount)*100,
+              },{
+                  name: 'Managerial',
+                  y: ($scope.experience['Negative Experience']/$scope.surveycount)*100,
+                  sliced: true,
+                  selected: true
+              }, {
+                  name: 'Positive Experience',
+                  y: ($scope.experience['Positive Experience']/$scope.surveycount)*100,
+              },  {
+                  name: 'Not Specified',
+                  y: (($scope.surveycount - $scope.experience['Neutral Experience'] - $scope.experience['Positive Experience'] - $scope.experience['Negative Experience'])/$scope.surveycount)*100,
+              }]
+          }]
+      });
+
+      Highcharts.chart('issueinPositive', {
+          chart: chart,
+          title: {
+              text: 'Percentage of candicate with overall Positive Experience facing Managerialor behavioral Issue during interview process'
+          },
+          tooltip: {
+              pointFormat: '<b>{point.percentage:.2f}%</b>'
+          },
+          plotOptions: plotOptions,
+          series: [{
+
+              colorByPoint: true,
+              data: [{
+                  name: 'Managerial',
+                  y: ($scope.issues['Positive Experience']['management']/$scope.experience['Positive Experience'])*100,
+              },{
+                  name: 'Behavioral',
+                  y: ($scope.issues['Positive Experience']['behavioral']/$scope.experience['Positive Experience'])*100,
+                  sliced: true,
+                  selected: true
+              }, {
+                  name: 'Other(No Issue or Other Issue)',
+                  y: (($scope.experience['Positive Experience']- $scope.issues['Positive Experience']['behavioral'] - $scope.issues['Positive Experience']['management'])/$scope.experience['Positive Experience'])*100,
+              }]
+          }]
+      });
+
+
+      Highcharts.chart('issueinNegative', {
+          chart: chart,
+          title: {
+              text: 'Percentage of candicate with overall Negative Experience facing Managerialor behavioral Issue during interview process'
+          },
+          tooltip: {
+              pointFormat: '<b>{point.percentage:.2f}%</b>'
+          },
+          plotOptions: plotOptions,
+          series: [{
+
+              colorByPoint: true,
+              data: [{
+                  name: 'Managerial',
+                  y: ($scope.issues['Negative Experience']['management']/$scope.experience['Negative Experience'])*100,
+              },{
+                  name: 'Behavioral',
+                  y: ($scope.issues['Negative Experience']['behavioral']/$scope.experience['Negative Experience'])*100,
+                  sliced: true,
+                  selected: true
+              }, {
+                  name: 'Other(No Issue or Other Issue)',
+                  y: (($scope.experience['Negative Experience']- $scope.issues['Negative Experience']['behavioral'] - $scope.issues['Negative Experience']['management'])/$scope.experience['Negative Experience'])*100,
+              }]
+          }]
+      });
+
+      Highcharts.chart('issueinNeutral', {
+          chart: chart,
+          title: {
+              text: 'Percentage of candicate with overall Neutral Experience facing Managerialor behavioral Issue during interview process'
+          },
+          tooltip: {
+              pointFormat: '<b>{point.percentage:.2f}%</b>'
+          },
+          plotOptions: plotOptions,
+          series: [{
+
+              colorByPoint: true,
+              data: [{
+                  name: 'Managerial',
+                  y: ($scope.issues['Neutral Experience']['management']/$scope.experience['Neutral Experience'])*100,
+              },{
+                  name: 'Behavioral',
+                  y: ($scope.issues['Neutral Experience']['behavioral']/$scope.experience['Neutral Experience'])*100,
+                  sliced: true,
+                  selected: true
+              }, {
+                  name: 'Other(No Issue or Other Issue)',
+                  y: (($scope.experience['Neutral Experience']- $scope.issues['Neutral Experience']['behavioral'] - $scope.issues['Neutral Experience']['management'])/$scope.experience['Neutral Experience'])*100,
+              }]
+          }]
+      });
+
+      Highcharts.chart('declinedDueToIssue', {
+          chart: chart,
+          title: {
+              text: 'Offers Rejected or declined due to Managerial or Behavioral Issues'
+          },
+          tooltip: {
+              pointFormat: '<b>{point.percentage:.2f}%</b>'
+          },
+          plotOptions: plotOptions,
+          series: [{
+
+              colorByPoint: true,
+              data: [{
+                  name: 'Managerial',
+                  y: $scope.offerDeclineDueToKnowIssue['management'],
+              },{
+                  name: 'Behavioral',
+                  y: $scope.offerDeclineDueToKnowIssue['behavioral'],
+                  sliced: true,
+                  selected: true
+              }, {
+                  name: 'Others',
+                  y: $scope.offerDeclineDueToKnowIssue['other'],
+              }]
+          }]
+      });
+
+  });
+
+});
+</script>
+
+</body>
+</html>
